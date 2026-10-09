@@ -1,21 +1,17 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class InputManager : MonoBehaviour
 {
-    
     private PlayerInput inputActions;
-    private Vector2 moveInput;
-    private bool isJumping;
-    private bool isJumpHold;
-
-    public Vector2 MoveInput => moveInput;
-    public bool IsJumping => isJumping;
-    public bool IsJumpHold => isJumpHold;
-
+    public Vector2 MoveInput { get; private set; }
+    public bool JumpPressed { get; private set; }
+    public bool JumpHeld { get; private set; }
+    public bool JumpReleased { get; private set; }
 
     private void Awake()
     {
-        inputActions=new PlayerInput();
+        inputActions = new PlayerInput();
     }
 
     private void OnEnable()
@@ -27,11 +23,15 @@ public class InputManager : MonoBehaviour
     {
         inputActions.Disable();
     }
-    void Update()
-    {
-        moveInput=inputActions.Player.Move.ReadValue<Vector2>();
-        isJumping = inputActions.Player.Jump.WasPerformedThisFrame();
-        isJumpHold=inputActions.Player.Jump.IsPressed();
 
+    private void Update()
+    {
+        MoveInput = inputActions.Player.Move.ReadValue<Vector2>();
+
+        JumpPressed = inputActions.Player.Jump.WasPressedThisFrame();
+        JumpHeld = inputActions.Player.Jump.IsPressed();
+        JumpReleased = inputActions.Player.Jump.WasReleasedThisFrame();
     }
+
+
 }
