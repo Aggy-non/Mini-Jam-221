@@ -18,7 +18,7 @@ public class PlayerHealth : MonoBehaviour
     private void Start()
     {
         currentHealth = maxHealth;
-        UpdateHealthBar();
+        frontHolder.fillAmount = 1;
     }
 
     private void Update()
