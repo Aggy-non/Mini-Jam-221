@@ -29,7 +29,6 @@ public class PlayerHealth : MonoBehaviour
        
         currentHealth -= drainSpeed * Time.deltaTime;
         currentHealth = Mathf.Clamp(currentHealth, 0f, maxHealth);
-
         UpdateHealthBar();
 
         if (currentHealth <= 0f)
