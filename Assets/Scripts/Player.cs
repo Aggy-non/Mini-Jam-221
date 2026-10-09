@@ -7,7 +7,7 @@ public class Player : MonoBehaviour
 
     [Header("Player Movement")]
     [SerializeField] private float moveSpeed = 5f;
-    [SerializeField] private float acceleration = 15f;
+    
 
     [Header("Jump Settings")]
     [SerializeField] private float jumpForce = 10f;
@@ -46,9 +46,7 @@ public class Player : MonoBehaviour
     {
         float targetSpeed = inputManager.MoveInput.x * moveSpeed;
 
-        float newSpeed = Mathf.MoveTowards(rb.linearVelocity.x, targetSpeed, acceleration * Time.fixedDeltaTime);
-
-        rb.linearVelocity = new Vector2(newSpeed, rb.linearVelocity.y);
+        rb.linearVelocity = new Vector2(targetSpeed * moveSpeed, rb.linearVelocity.y);
     }
 
     private void Jump()
