@@ -53,14 +53,16 @@ public class Player : MonoBehaviour
 
     private void Jump()
     {
+       
         if (isGrounded && inputManager.JumpPressed)
         {
             rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
         }
 
+        
         if (inputManager.JumpReleased && rb.linearVelocity.y > 0f)
         {
-            rb.linearVelocity = new Vector2(rb.linearVelocity.x, rb.linearVelocity.y * jumpCutMultiplier);
+            rb.linearVelocity = new Vector2(rb.linearVelocity.x, rb.linearVelocity.y * 0.4f);
         }
     }
 
