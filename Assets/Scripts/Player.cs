@@ -4,6 +4,7 @@ public class Player : MonoBehaviour
 {
     private InputManager inputManager;
     private Rigidbody2D rb;
+    private SpriteRenderer spriteRenderer;
 
     [Header("Player Movement")]
     [SerializeField] private float moveSpeed = 5f;
@@ -24,6 +25,7 @@ public class Player : MonoBehaviour
     {
         rb = GetComponent<Rigidbody2D>();
         inputManager = GetComponent<InputManager>();
+        spriteRenderer = GetComponent<SpriteRenderer>();
     }
 
     private void Update()
@@ -47,6 +49,18 @@ public class Player : MonoBehaviour
         float targetSpeed = inputManager.MoveInput.x * moveSpeed;
 
         rb.linearVelocity = new Vector2(targetSpeed * moveSpeed, rb.linearVelocity.y);
+
+        if (targetSpeed > 0)
+        {
+            spriteRenderer.flipX = false;
+        }
+
+        else if (targetSpeed < 0)
+        {
+            {
+                spriteRenderer.flipX = true;
+            }
+        }
     }
 
     private void Jump()

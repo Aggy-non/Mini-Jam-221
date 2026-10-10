@@ -37,13 +37,26 @@ public class PlayerHealth : MonoBehaviour
         }
     }
 
+
     private void UpdateHealthBar()
     {
         if (frontHolder != null)
         {
             frontHolder.fillAmount = currentHealth / maxHealth;
+
+            float healthPercent = currentHealth / maxHealth;
+
+            if (healthPercent > 0.8f)
+                frontHolder.color = Color.Lerp(new Color(0.8f, 0f, 0f), new Color(1f, 0.2f, 0.5f), (1f - healthPercent) / 0.2f);
+            else if (healthPercent > 0.6f)
+                frontHolder.color = Color.Lerp(new Color(1f, 0.2f, 0.5f), new Color(0.6f, 0.1f, 0.9f), (0.8f - healthPercent) / 0.2f);
+            else if (healthPercent > 0.4f)
+                frontHolder.color = Color.Lerp(new Color(0.6f, 0.1f, 0.9f), Color.blue, (0.6f - healthPercent) / 0.2f);
+            else
+                frontHolder.color = Color.Lerp(Color.blue, Color.cyan, (0.4f - healthPercent) / 0.4f);
         }
     }
+
 
     private void Die()
     {
