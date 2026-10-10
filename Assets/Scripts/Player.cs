@@ -1,3 +1,4 @@
+
 using UnityEngine;
 
 public class Player : MonoBehaviour
@@ -8,11 +9,9 @@ public class Player : MonoBehaviour
 
     [Header("Player Movement")]
     [SerializeField] private float moveSpeed = 5f;
-    
 
     [Header("Jump Settings")]
     [SerializeField] private float jumpForce = 10f;
-    [SerializeField] private float jumpCutMultiplier = 0.9f;
 
     [Header("Ground Check")]
     [SerializeField] private Transform groundCheck;
@@ -20,6 +19,8 @@ public class Player : MonoBehaviour
     [SerializeField] private LayerMask groundLayer;
 
     private bool isGrounded;
+
+    public bool IsGrounded => isGrounded;
 
     private void Awake()
     {
@@ -41,40 +42,44 @@ public class Player : MonoBehaviour
 
     private void CheckGround()
     {
-        isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
+        isGrounded = Physics2D.OverlapCircle(
+            groundCheck.position,
+            groundCheckRadius,
+            groundLayer
+        );
     }
 
     private void Move()
     {
         float targetSpeed = inputManager.MoveInput.x * moveSpeed;
 
-        rb.linearVelocity = new Vector2(targetSpeed * moveSpeed, rb.linearVelocity.y);
+        rb.linearVelocity = new Vector2(
+            targetSpeed,
+            rb.linearVelocity.y
+        );
 
         if (targetSpeed > 0)
-        {
             spriteRenderer.flipX = false;
-        }
-
         else if (targetSpeed < 0)
-        {
-            {
-                spriteRenderer.flipX = true;
-            }
-        }
+            spriteRenderer.flipX = true;
     }
 
     private void Jump()
     {
-       
         if (isGrounded && inputManager.JumpPressed)
         {
-            rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
+            rb.linearVelocity = new Vector2(
+                rb.linearVelocity.x,
+                jumpForce
+            );
         }
 
-        
         if (inputManager.JumpReleased && rb.linearVelocity.y > 0f)
         {
-            rb.linearVelocity = new Vector2(rb.linearVelocity.x, rb.linearVelocity.y * 0.75f);
+            rb.linearVelocity = new Vector2(
+                rb.linearVelocity.x,
+                rb.linearVelocity.y * 0.75f
+            );
         }
     }
 
@@ -84,6 +89,9 @@ public class Player : MonoBehaviour
             return;
 
         Gizmos.color = Color.green;
-        Gizmos.DrawWireSphere(groundCheck.position, groundCheckRadius);
+        Gizmos.DrawWireSphere(
+            groundCheck.position,
+            groundCheckRadius
+        );
     }
 }
