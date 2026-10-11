@@ -1,0 +1,101 @@
+
+using UnityEngine;
+
+public class Player : MonoBehaviour
+{
+    private InputManager inputManager;
+    private Rigidbody2D rb;
+    private SpriteRenderer spriteRenderer;
+    private Animator anim;
+
+    [Header("Player Movement")]
+    [SerializeField] private float moveSpeed = 5f;
+
+    [Header("Jump Settings")]
+    [SerializeField] private float jumpForce = 10f;
+
+    [Header("Ground Check")]
+    [SerializeField] private Transform groundCheck;
+    [SerializeField] private float groundCheckRadius = 0.2f;
+    [SerializeField] private LayerMask groundLayer;
+
+    private bool isGrounded;
+
+    public bool IsGrounded => isGrounded;
+
+    private void Awake()
+    {
+        rb = GetComponent<Rigidbody2D>();
+        inputManager = GetComponent<InputManager>();
+        spriteRenderer = GetComponent<SpriteRenderer>();
+        anim = GetComponent<Animator>();
+    }
+
+    private void Update()
+    {
+        CheckGround();
+        Jump();
+    }
+
+    private void FixedUpdate()
+    {
+        Move();
+    }
+
+    private void CheckGround()
+    {
+        isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
+    }
+
+
+    private void Move()
+    {
+        float targetSpeed = inputManager.MoveInput.x * moveSpeed;
+
+        rb.linearVelocity = new Vector2(targetSpeed, rb.linearVelocity.y);
+
+        if (targetSpeed > 0f)
+        {
+            spriteRenderer.flipX = false;
+        }
+        else if (targetSpeed < 0f)
+        {
+            spriteRenderer.flipX = true;
+        }
+
+        if (isGrounded)
+        {
+            anim.SetFloat("Speed", Mathf.Abs(inputManager.MoveInput.x));
+        }
+        else
+        {
+            anim.SetFloat("Speed", 0f);
+        }
+    }
+
+
+
+    private void Jump()
+    {
+        if (isGrounded && inputManager.JumpPressed)
+        {
+            rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
+            anim.SetTrigger("Jump");
+        }
+
+        if (inputManager.JumpReleased && rb.linearVelocity.y > 0f)
+        {
+            rb.linearVelocity = new Vector2(rb.linearVelocity.x, rb.linearVelocity.y * 0.75f);
+        }
+    }
+
+
+    private void OnDrawGizmosSelected()
+    {
+        if (groundCheck == null)
+            return;
+
+        Gizmos.color = Color.green;
+        Gizmos.DrawWireSphere(groundCheck.position, groundCheckRadius);
+    }
+}
