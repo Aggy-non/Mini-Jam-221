@@ -106,7 +106,7 @@ TextureImporter:
   maxTextureSize: 2048
   textureSettings:
     serializedVersion: 2
-    filterMode: 1
+    filterMode: 0
     aniso: 1
     mipBias: 0
     wrapU: 1
@@ -116,7 +116,7 @@ TextureImporter:
   lightmap: 0
   compressionQuality: 50
   spriteMode: 2
-  spriteExtrude: 1
+  spriteExtrude: 0
   spriteMeshType: 1
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
@@ -165,6 +165,32 @@ TextureImporter:
     ignorePlatformSupport: 0
     androidETC2FallbackOverride: 0
     forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: WebGL
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: WindowsStoreApps
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
   spriteSheet:
     serializedVersion: 2
     sprites:
@@ -172,10 +198,10 @@ TextureImporter:
       name: Move1
       rect:
         serializedVersion: 2
-        x: 63
-        y: 724
-        width: 210
-        height: 146
+        x: 66
+        y: 727
+        width: 213
+        height: 147
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -194,10 +220,10 @@ TextureImporter:
       name: Move2
       rect:
         serializedVersion: 2
-        x: 382
-        y: 724
-        width: 202
-        height: 148
+        x: 386
+        y: 727
+        width: 213
+        height: 147
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -216,10 +242,10 @@ TextureImporter:
       name: Move3
       rect:
         serializedVersion: 2
-        x: 702
-        y: 724
-        width: 202
-        height: 151
+        x: 706
+        y: 727
+        width: 213
+        height: 147
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -238,10 +264,10 @@ TextureImporter:
       name: Move4
       rect:
         serializedVersion: 2
-        x: 1022
-        y: 724
-        width: 210
-        height: 148
+        x: 1026
+        y: 727
+        width: 213
+        height: 147
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -260,10 +286,10 @@ TextureImporter:
       name: Move5
       rect:
         serializedVersion: 2
-        x: 1343
-        y: 724
-        width: 218
-        height: 146
+        x: 1346
+        y: 727
+        width: 213
+        height: 147
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -282,10 +308,10 @@ TextureImporter:
       name: Move6
       rect:
         serializedVersion: 2
-        x: 1663
-        y: 724
-        width: 209
-        height: 150
+        x: 1666
+        y: 727
+        width: 213
+        height: 147
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -304,10 +330,10 @@ TextureImporter:
       name: Move7
       rect:
         serializedVersion: 2
-        x: 1983
-        y: 724
-        width: 201
-        height: 153
+        x: 1986
+        y: 727
+        width: 213
+        height: 147
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -326,10 +352,10 @@ TextureImporter:
       name: Move8
       rect:
         serializedVersion: 2
-        x: 2303
-        y: 724
-        width: 201
-        height: 150
+        x: 2306
+        y: 727
+        width: 213
+        height: 147
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -348,10 +374,10 @@ TextureImporter:
       name: Jump 1
       rect:
         serializedVersion: 2
-        x: 57
-        y: 404
+        x: 59
+        y: 406
         width: 210
-        height: 121
+        height: 117
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -371,9 +397,9 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 387
-        y: 404
+        y: 408
         width: 205
-        height: 164
+        height: 160
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -393,9 +419,9 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 706
-        y: 393
+        y: 398
         width: 205
-        height: 208
+        height: 203
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -415,9 +441,9 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 1024
-        y: 432
+        y: 436
         width: 209
-        height: 189
+        height: 185
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -437,9 +463,9 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 1343
-        y: 473
+        y: 476
         width: 215
-        height: 162
+        height: 159
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -459,9 +485,9 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 1665
-        y: 423
+        y: 427
         width: 203
-        height: 200
+        height: 196
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -481,9 +507,9 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 1973
-        y: 404
+        y: 408
         width: 220
-        height: 115
+        height: 111
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -503,9 +529,9 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 2299
-        y: 404
+        y: 408
         width: 205
-        height: 138
+        height: 134
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -524,10 +550,10 @@ TextureImporter:
       name: Idle1
       rect:
         serializedVersion: 2
-        x: 63
-        y: 84
-        width: 201
-        height: 147
+        x: 66
+        y: 87
+        width: 199
+        height: 145
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -546,10 +572,10 @@ TextureImporter:
       name: idle2
       rect:
         serializedVersion: 2
-        x: 385
-        y: 84
-        width: 202
-        height: 151
+        x: 386
+        y: 87
+        width: 199
+        height: 145
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -568,10 +594,10 @@ TextureImporter:
       name: idle3
       rect:
         serializedVersion: 2
-        x: 703
-        y: 84
-        width: 205
-        height: 154
+        x: 706
+        y: 87
+        width: 199
+        height: 145
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -590,10 +616,10 @@ TextureImporter:
       name: idle4
       rect:
         serializedVersion: 2
-        x: 1023
-        y: 84
-        width: 205
-        height: 153
+        x: 1026
+        y: 87
+        width: 199
+        height: 145
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -612,10 +638,10 @@ TextureImporter:
       name: idle5
       rect:
         serializedVersion: 2
-        x: 1343
-        y: 84
-        width: 201
-        height: 149
+        x: 1346
+        y: 87
+        width: 199
+        height: 145
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -634,9 +660,9 @@ TextureImporter:
       name: idle6
       rect:
         serializedVersion: 2
-        x: 1662
-        y: 84
-        width: 202
+        x: 1665
+        y: 87
+        width: 199
         height: 145
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
@@ -656,10 +682,10 @@ TextureImporter:
       name: idle7
       rect:
         serializedVersion: 2
-        x: 1982
-        y: 84
-        width: 202
-        height: 142
+        x: 1985
+        y: 87
+        width: 199
+        height: 145
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -678,10 +704,10 @@ TextureImporter:
       name: idle8
       rect:
         serializedVersion: 2
-        x: 2302
-        y: 84
-        width: 202
-        height: 143
+        x: 2305
+        y: 87
+        width: 199
+        height: 145
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -710,6 +736,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
+      Black_spider_0: -1096989783
       Idle1: -4248675390337095336
       Jump 1: -1904420493697061814
       Jump 2: 6076634478016425215
