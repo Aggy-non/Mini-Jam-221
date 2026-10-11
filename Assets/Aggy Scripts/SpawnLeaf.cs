@@ -1,16 +1,43 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+// ======================================================================
+//  SpawnLeaf.cs
+//  Thin Unity wrapper around LeafPlanner:
+//    - timer, camera bounds, instantiating leaves
+//    - turns the planner's rows into GameObjects
+//  All the placement logic lives in LeafPlanner.cs, the checks in
+//  LeafValidator.cs and the rotting behaviour in WitheringLeaf.cs.
+// ======================================================================
+
 public class SpawnLeaf : MonoBehaviour
 {
-    public GameObject prefab;
-    public Transform spawnPoint;
+    [Header("Prefabs")]
+    public GameObject prefab;                   // solid leaf
+    public GameObject witheringPrefab;          // optional: different art for withering leaves (falls back to prefab)
+    public Transform spawnPoint;                // leaves spawn at its Y/Z/rotation; X is chosen by the generator
 
     [Header("Platform settings")]
-    public float platformSize;
-    public float platformClearance;             // minimum gap between platforms
-    public float playerMaxHorizontalJumpLength; // center to center
-    public int amountOfLeavesPerYLevel = 1;
+    public float platformSize = 1.5f;           // world width of the leaf prefab (right-click the component to auto-detect)
+    public float platformClearance = 0.5f;      // minimum gap between leaves in the same row
+    public float playerMaxHorizontalJumpLength = 4f; // physics maximum, center to center
+    [Range(0.3f, 1f)]
+    public float reachSafety = 0.85f;           // the guarantee uses jump length * this, so it still works from a leaf's edge
+
+    [Header("Leaves per level (soft targets, reachability is the hard rule)")]
+    public int minSolidLeaves = 1;              // includes the path leaf
+    public int maxSolidLeaves = 3;
+    public int minWitheringLeaves = 0;
+    public int maxWitheringLeaves = 2;
+    [Range(1f, 3f)]
+    public float funnelWidthMultiplier = 1.5f;  // width of a lone leaf that follows a bigger row (1 = off)
+
+    [Header("Withering leaves")]
+    public float witherDelay = 0.8f;            // seconds between landing and letting go
+    public float witherFadeTime = 0.35f;
+    public Color witheringIdleTint = new Color(0.95f, 0.85f, 0.45f, 1f);
+    public Color witheringDecayTint = new Color(0.45f, 0.30f, 0.15f, 1f);
+    public string playerTag = "Player";
 
     [Header("Camera bounds")]
     public Camera cam;                          // leave empty to use Camera.main
@@ -21,28 +48,48 @@ public class SpawnLeaf : MonoBehaviour
     public bool Spawning = true;
 
     [Header("Debug")]
-    public Transform leftSide;
+    public int seed = 0;                        // 0 = new random seed every run; paste a logged seed to replay a layout
+    public bool logWarnings = true;
+    public Transform leftSide;                  // markers: range the solid extras of the current row were limited to
     public Transform rightSide;
 
-    private float platformXPosition;            // X of the previous path leaf
-    private float timer = 0f;
-    private int leafLevel = 0;
-    private int lastPathLevel = -1;             // last level a path leaf was calculated for
+    /// <summary>Fired after each row is spawned. Leaves in the list are in the same order as row.leaves (index 0 = path leaf).</summary>
+    public event System.Action<LeafRow, List<GameObject>> RowSpawned;
 
-    // Camera edges in world space (edgePadding already applied)
+    private LeafPlanner planner;
+    private readonly LeafPlannerSettings settings = new LeafPlannerSettings();
+    private float timer = 0f;
     private float camLeftEdge;
     private float camRightEdge;
-    // Limits for leaf CENTERS (edges pulled in by half a leaf)
-    private float minX;
-    private float maxX;
+
+    // ------------------------------------------------------------------
+    // Unity
+    // ------------------------------------------------------------------
 
     private void Start()
     {
         if (cam == null) cam = Camera.main;
-        UpdateBounds();
+        if (cam == null || spawnPoint == null || prefab == null)
+        {
+            Debug.LogError("SpawnLeaf: assign a prefab, a spawn point and a camera.", this);
+            enabled = false;
+            return;
+        }
 
-        UpdatePreviousSpawnPoint();
-        findRange(platformXPosition - (platformSize / 2), platformXPosition + (platformSize / 2));
+        UpdateBounds();
+        ApplySettings();
+
+        int actualSeed = seed != 0 ? seed : System.Environment.TickCount;
+        if (actualSeed == 0) actualSeed = 1;
+        planner = new LeafPlanner(actualSeed, spawnPoint.position.x, platformSize);
+
+        if (logWarnings)
+        {
+            Debug.Log("SpawnLeaf: generator seed " + actualSeed, this);
+            List<string> problems = new List<string>();
+            LeafValidator.CheckSettings(settings, problems);
+            foreach (string p in problems) Debug.LogWarning("SpawnLeaf settings: " + p, this);
+        }
     }
 
     private void Update()
@@ -50,50 +97,98 @@ public class SpawnLeaf : MonoBehaviour
         Timer();
     }
 
-    public void CreateLeaf(Transform leafSpawnPoint)
+    private void OnValidate()
     {
-        Instantiate(prefab, leafSpawnPoint.position, leafSpawnPoint.rotation);
+        minSolidLeaves = Mathf.Max(1, minSolidLeaves);
+        maxSolidLeaves = Mathf.Max(minSolidLeaves, maxSolidLeaves);
+        minWitheringLeaves = Mathf.Max(0, minWitheringLeaves);
+        maxWitheringLeaves = Mathf.Max(minWitheringLeaves, maxWitheringLeaves);
+        platformSize = Mathf.Max(0.01f, platformSize);
+        platformClearance = Mathf.Max(0f, platformClearance);
     }
 
-    public void CreateLeafAt(float x)
-    {
-        // Same Y / Z / rotation as the path leaf, only X differs
-        Vector3 pos = new Vector3(x, spawnPoint.position.y, spawnPoint.position.z);
-        Instantiate(prefab, pos, spawnPoint.rotation);
-    }
+    // ------------------------------------------------------------------
+    // Public
+    // ------------------------------------------------------------------
 
     public void ChangeSpawnPoint(Transform newSpawnPoint)
     {
         spawnPoint = newSpawnPoint;
     }
 
-    public void Timer()
+    // ------------------------------------------------------------------
+    // Spawning
+    // ------------------------------------------------------------------
+
+    private void Timer()
     {
-        if (!Spawning) return;
+        if (!Spawning || planner == null) return;
         timer += Time.deltaTime;
 
         if (timer >= interval)
         {
             timer -= interval;
-            SpawnLeaves(amountOfLeavesPerYLevel, leafLevel);
-            leafLevel++;
+            SpawnRow();
         }
     }
 
-    public void SpawnLeaves(int numberOfLeaves, int levelNumber)
+    private void SpawnRow()
     {
-        // 1. Path leaf: the one the player is guaranteed to be able to reach
-        CalculateNewLeafPosition(levelNumber);
-        CreateLeaf(spawnPoint);
-        UpdatePreviousSpawnPoint();
+        UpdateBounds();     // the camera may have moved or been resized
+        ApplySettings();    // lets you tweak values in the inspector while playing
 
-        // 2. Everything else goes randomly into the free space around the path leaf
-        SpawnExtraLeaves(numberOfLeaves - 1);
+        LeafRow row = planner.NextRow(settings);
+
+        List<GameObject> spawned = new List<GameObject>(row.leaves.Count);
+        foreach (LeafSpec leaf in row.leaves)
+        {
+            spawned.Add(CreateLeaf(leaf));
+        }
+
+        // Keep the spawn point on the path leaf, like the old script did
+        Vector3 sp = spawnPoint.position;
+        spawnPoint.position = new Vector3(row.TrunkX, sp.y, sp.z);
+
+        ShowWindow(row);
+
+        if (logWarnings)
+        {
+            foreach (string w in planner.Warnings) Debug.LogWarning(w, this);
+        }
+
+        if (RowSpawned != null) RowSpawned(row, spawned);
+    }
+
+    private GameObject CreateLeaf(LeafSpec leaf)
+    {
+        bool withering = leaf.kind == LeafKind.Withering;
+        GameObject source = (withering && witheringPrefab != null) ? witheringPrefab : prefab;
+
+        Vector3 pos = new Vector3(leaf.x, spawnPoint.position.y, spawnPoint.position.z);
+        GameObject go = Instantiate(source, pos, spawnPoint.rotation);
+
+        // Funnel leaves are wider than the prefab
+        if (platformSize > 0f && Mathf.Abs(leaf.width - platformSize) > 0.001f)
+        {
+            Vector3 scale = go.transform.localScale;
+            scale.x *= leaf.width / platformSize;
+            go.transform.localScale = scale;
+        }
+
+        if (withering)
+        {
+            WitheringLeaf rot = go.GetComponent<WitheringLeaf>();
+            if (rot == null) rot = go.AddComponent<WitheringLeaf>();
+            rot.Configure(witherDelay, witherFadeTime, witheringIdleTint, witheringDecayTint, playerTag);
+        }
+
+        return go;
     }
 
     // ------------------------------------------------------------------
-    // Camera bounds
+    // Camera bounds / settings
     // ------------------------------------------------------------------
+
     private void UpdateBounds()
     {
         // Distance from the camera to the leaf plane along the camera's forward axis.
@@ -104,205 +199,92 @@ public class SpawnLeaf : MonoBehaviour
 
         camLeftEdge = leftEdge + edgePadding;
         camRightEdge = rightEdge - edgePadding;
-
-        // Leaf positions are centers, so pull the limits in by half a leaf
-        minX = camLeftEdge + platformSize / 2f;
-        maxX = camRightEdge - platformSize / 2f;
     }
 
-    // ------------------------------------------------------------------
-    // Path leaf
-    // ------------------------------------------------------------------
-    private void CalculateNewLeafPosition(int currentLeafLevel)
+    private void ApplySettings()
     {
-        // The path leaf was already placed for this level
-        if (currentLeafLevel == lastPathLevel) return;
-        lastPathLevel = currentLeafLevel;
-
-        UpdateBounds(); // keeps walls correct if the camera moves or the window is resized
-
-        float minOffset = platformSize + platformClearance;                    // closest valid center-to-center distance
-        float maxOffset = Mathf.Max(minOffset, playerMaxHorizontalJumpLength); // farthest the spider can reach
-        float half = platformSize / 2f;
-
-        // Only offer directions that still fit inside the walls
-        List<int> options = new List<int> { 2 }; // center is always possible
-        if (platformXPosition - minOffset >= minX) options.Add(1); // left
-        if (platformXPosition + minOffset <= maxX) options.Add(3); // right
-
-        int position = options[Random.Range(0, options.Count)];
-
-        float newX;
-        switch (position)
-        {
-            case 1: // left
-                {
-                    float far = Mathf.Max(platformXPosition - maxOffset, minX);
-                    float near = platformXPosition - minOffset;
-                    newX = Random.Range(far, near);
-                    findRange(far, near);
-                    break;
-                }
-            case 3: // right
-                {
-                    float near = platformXPosition + minOffset;
-                    float far = Mathf.Min(platformXPosition + maxOffset, maxX);
-                    newX = Random.Range(near, far);
-                    findRange(near, far);
-                    break;
-                }
-            default: // center
-                {
-                    float left = Mathf.Max(platformXPosition - half, minX);
-                    float right = Mathf.Min(platformXPosition + half, maxX);
-                    newX = Random.Range(left, right);
-                    findRange(left, right);
-                    break;
-                }
-        }
-
-        spawnPoint.position = new Vector3(newX, spawnPoint.position.y, spawnPoint.position.z);
+        settings.platformSize = platformSize;
+        settings.platformClearance = platformClearance;
+        settings.reach = playerMaxHorizontalJumpLength * reachSafety;
+        settings.camLeftEdge = camLeftEdge;
+        settings.camRightEdge = camRightEdge;
+        settings.minSolidLeaves = minSolidLeaves;
+        settings.maxSolidLeaves = maxSolidLeaves;
+        settings.minWitheringLeaves = minWitheringLeaves;
+        settings.maxWitheringLeaves = maxWitheringLeaves;
+        settings.funnelWidthMultiplier = funnelWidthMultiplier;
+        settings.demoteUnsafeLeaves = true;
     }
 
-    // ------------------------------------------------------------------
-    // Extra leaves
-    // ------------------------------------------------------------------
-    private void SpawnExtraLeaves(int count)
-    {
-        if (count <= 0) return;
-
-        float half = platformSize / 2f;
-        float pathX = spawnPoint.position.x;
-
-        // Free regions on each side of the path leaf, as [start, start + width].
-        // Clearance is already removed next to the path leaf.
-        float leftStart = camLeftEdge;
-        float leftEnd = pathX - half - platformClearance;
-        float rightStart = pathX + half + platformClearance;
-        float rightEnd = camRightEdge;
-
-        float leftWidth = Mathf.Max(0f, leftEnd - leftStart);
-        float rightWidth = Mathf.Max(0f, rightEnd - rightStart);
-
-        int leftCapacity = GetCapacity(leftWidth);
-        int rightCapacity = GetCapacity(rightWidth);
-
-        int leftCount, rightCount;
-        DistributeLeaves(count, leftWidth, rightWidth, leftCapacity, rightCapacity,
-                         out leftCount, out rightCount);
-
-        PlaceLeavesInRegion(leftCount, leftStart, leftWidth);
-        PlaceLeavesInRegion(rightCount, rightStart, rightWidth);
-    }
-
-    // How many platforms fit in a region of this width (with clearance between them)
-    private int GetCapacity(float regionWidth)
-    {
-        float step = platformSize + platformClearance;
-        if (step <= 0f || regionWidth < platformSize) return 0;
-        // n * size + (n - 1) * clearance <= width   ->   n <= (width + clearance) / step
-        return Mathf.FloorToInt((regionWidth + platformClearance) / step + 0.0001f);
-    }
-
-    // Decides how many of the extra leaves go left and how many go right
-    private void DistributeLeaves(int count, float leftWidth, float rightWidth,
-                                  int leftCapacity, int rightCapacity,
-                                  out int leftCount, out int rightCount)
-    {
-        leftCount = 0;
-        rightCount = 0;
-
-        if (leftCapacity <= 0 && rightCapacity <= 0) return; // nowhere to put anything
-
-        bool leftIsSmaller = leftWidth <= rightWidth;
-        float smallWidth = leftIsSmaller ? leftWidth : rightWidth;
-        float bigWidth = leftIsSmaller ? rightWidth : leftWidth;
-        int smallCapacity = leftIsSmaller ? leftCapacity : rightCapacity;
-        int bigCapacity = leftIsSmaller ? rightCapacity : leftCapacity;
-
-        // Smaller side only gets leaves if it can fit at least one
-        int smallCount = 0;
-        if (smallCapacity > 0)
-        {
-            // Share proportional to the space; exactly .5 rounds down, so
-            // 2 leaves with a 1:3 space split both go to the bigger side.
-            float share = count * smallWidth / (smallWidth + bigWidth);
-            smallCount = Mathf.CeilToInt(share - 0.5f - 0.001f);
-            smallCount = Mathf.Clamp(smallCount, 0, smallCapacity);
-        }
-
-        int bigCount = count - smallCount;
-
-        // If the bigger side is full, push the overflow to the smaller side
-        if (bigCount > bigCapacity)
-        {
-            int overflow = bigCount - bigCapacity;
-            bigCount = bigCapacity;
-            smallCount = Mathf.Min(smallCount + overflow, smallCapacity);
-        }
-
-        leftCount = leftIsSmaller ? smallCount : bigCount;
-        rightCount = leftIsSmaller ? bigCount : smallCount;
-    }
-
-    // Places n leaves at random spots in a region without overlapping and
-    // keeping at least platformClearance between them.
-    private void PlaceLeavesInRegion(int n, float regionStart, float regionWidth)
-    {
-        if (n <= 0) return;
-
-        float half = platformSize / 2f;
-        float step = platformSize + platformClearance;
-
-        // Space that is left over once n leaves are packed tightly together
-        float required = n * platformSize + (n - 1) * platformClearance;
-        float slack = Mathf.Max(0f, regionWidth - required);
-
-        // Pick n random shifts inside the slack and sort them. Leaf i is pushed
-        // right by its shift, on top of its tightly-packed position. Sorted shifts
-        // can only grow, so leaves never overlap and the gap never drops below clearance.
-        float[] shifts = new float[n];
-        for (int i = 0; i < n; i++)
-        {
-            shifts[i] = Random.Range(0f, slack);
-        }
-        System.Array.Sort(shifts);
-
-        for (int i = 0; i < n; i++)
-        {
-            float leftEdge = regionStart + shifts[i] + i * step;
-            CreateLeafAt(leftEdge + half);
-        }
-    }
-
-    // ------------------------------------------------------------------
-    // Helpers
-    // ------------------------------------------------------------------
-    public float GetRandomNumberFloat(float min, float max)
-    {
-        return Random.Range(min, max); // float version is already inclusive
-    }
-
-    public int GetRandomNumberInt(int min, int max)
-    {
-        return Random.Range(min, max + 1); // +1 because the int version excludes max
-    }
-
-    public void UpdatePreviousSpawnPoint()
-    {
-        platformXPosition = spawnPoint.position.x;
-    }
-
-    public int LeftRightCenter()
-    {
-        return GetRandomNumberInt(1, 3);
-    }
-
-    public void findRange(float left, float right)
+    private void ShowWindow(LeafRow row)
     {
         if (leftSide != null)
-            leftSide.position = new Vector3(left, leftSide.position.y, leftSide.position.z);
+            leftSide.position = new Vector3(row.windowLeft, leftSide.position.y, leftSide.position.z);
         if (rightSide != null)
-            rightSide.position = new Vector3(right, rightSide.position.y, rightSide.position.z);
+            rightSide.position = new Vector3(row.windowRight, rightSide.position.y, rightSide.position.z);
+    }
+
+    // ------------------------------------------------------------------
+    // Editor tools (right-click the component header)
+    // ------------------------------------------------------------------
+
+    [ContextMenu("Run Generator Self-Test (10000 rows)")]
+    private void RunSelfTest()
+    {
+        if (cam == null) cam = Camera.main;
+        if (cam == null || spawnPoint == null)
+        {
+            Debug.LogError("SpawnLeaf self-test: assign a spawn point and a camera first.", this);
+            return;
+        }
+
+        UpdateBounds();
+        ApplySettings();
+
+        List<string> configProblems = new List<string>();
+        LeafValidator.CheckSettings(settings, configProblems);
+        foreach (string p in configProblems) Debug.LogWarning("SpawnLeaf settings: " + p, this);
+
+        const int rows = 10000;
+        LeafPlanner test = new LeafPlanner(Random.Range(1, int.MaxValue), spawnPoint.position.x, platformSize);
+        int problems = 0;
+        int solid = 0;
+        int withering = 0;
+        int shown = 0;
+
+        for (int i = 0; i < rows; i++)
+        {
+            LeafRow row = test.NextRow(settings);
+            foreach (LeafSpec leaf in row.leaves)
+            {
+                if (leaf.kind == LeafKind.Solid) solid++; else withering++;
+            }
+            problems += test.Warnings.Count;
+            foreach (string w in test.Warnings)
+            {
+                if (shown++ < 5) Debug.LogWarning(w, this);
+            }
+        }
+
+        Debug.Log("SpawnLeaf self-test: " + rows + " rows, " + problems + " problems, "
+            + (solid / (float)rows).ToString("F2") + " solid and "
+            + (withering / (float)rows).ToString("F2") + " withering leaves per row on average, "
+            + test.DemotedLeaves + " leaves demoted. (seed " + test.Seed + ")", this);
+    }
+
+    [ContextMenu("Detect Platform Size From Prefab")]
+    private void DetectPlatformSize()
+    {
+        if (prefab == null) return;
+
+        SpriteRenderer sr = prefab.GetComponentInChildren<SpriteRenderer>();
+        if (sr == null || sr.sprite == null)
+        {
+            Debug.LogWarning("SpawnLeaf: the prefab has no SpriteRenderer with a sprite, set Platform Size by hand.", this);
+            return;
+        }
+
+        platformSize = sr.sprite.bounds.size.x * sr.transform.lossyScale.x;
+        Debug.Log("SpawnLeaf: platform size set to " + platformSize, this);
     }
 }
