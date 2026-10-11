@@ -6,6 +6,7 @@ public class Player : MonoBehaviour
     private InputManager inputManager;
     private Rigidbody2D rb;
     private SpriteRenderer spriteRenderer;
+    private Animator anim;
 
     [Header("Player Movement")]
     [SerializeField] private float moveSpeed = 5f;
@@ -27,6 +28,7 @@ public class Player : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         inputManager = GetComponent<InputManager>();
         spriteRenderer = GetComponent<SpriteRenderer>();
+        anim = GetComponent<Animator>();
     }
 
     private void Update()
@@ -42,46 +44,51 @@ public class Player : MonoBehaviour
 
     private void CheckGround()
     {
-        isGrounded = Physics2D.OverlapCircle(
-            groundCheck.position,
-            groundCheckRadius,
-            groundLayer
-        );
+        isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
     }
+
 
     private void Move()
     {
         float targetSpeed = inputManager.MoveInput.x * moveSpeed;
 
-        rb.linearVelocity = new Vector2(
-            targetSpeed,
-            rb.linearVelocity.y
-        );
+        rb.linearVelocity = new Vector2(targetSpeed, rb.linearVelocity.y);
 
-        if (targetSpeed > 0)
+        if (targetSpeed > 0f)
+        {
             spriteRenderer.flipX = false;
-        else if (targetSpeed < 0)
+        }
+        else if (targetSpeed < 0f)
+        {
             spriteRenderer.flipX = true;
+        }
+
+        if (isGrounded)
+        {
+            anim.SetFloat("Speed", Mathf.Abs(inputManager.MoveInput.x));
+        }
+        else
+        {
+            anim.SetFloat("Speed", 0f);
+        }
     }
+
+
 
     private void Jump()
     {
         if (isGrounded && inputManager.JumpPressed)
         {
-            rb.linearVelocity = new Vector2(
-                rb.linearVelocity.x,
-                jumpForce
-            );
+            rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
+            anim.SetTrigger("Jump");
         }
 
         if (inputManager.JumpReleased && rb.linearVelocity.y > 0f)
         {
-            rb.linearVelocity = new Vector2(
-                rb.linearVelocity.x,
-                rb.linearVelocity.y * 0.75f
-            );
+            rb.linearVelocity = new Vector2(rb.linearVelocity.x, rb.linearVelocity.y * 0.75f);
         }
     }
+
 
     private void OnDrawGizmosSelected()
     {
@@ -89,9 +96,6 @@ public class Player : MonoBehaviour
             return;
 
         Gizmos.color = Color.green;
-        Gizmos.DrawWireSphere(
-            groundCheck.position,
-            groundCheckRadius
-        );
+        Gizmos.DrawWireSphere(groundCheck.position, groundCheckRadius);
     }
 }
